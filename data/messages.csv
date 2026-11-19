@@ -1,0 +1,5 @@
+id,session_id,role,content,tokens,created_at
+01b1e5f0-4c3a-4d2b-9f8e-1a2b3c4d5e6f,6332ef6d-4474-490b-9996-57c24e89d5e1,user,Hello, how are you?,5,2026-11-19T06:50:02.807173+00:00
+01b1e5f0-4c3a-4d2b-9f8e-1a2b3c4d5e6f,6332ef6d-4474-490b-9996-57c24e89d5e1,assistant,I'm good, thank you! How can I assist you today?,12,2026-11-19T06:50:03.807173+00:00
+01b1e5f0-4c3a-4d2b-9f8e-1a2b3c4d5e6f,6332ef6d-4474-490b-9996-57c24e89d5e1,user,Can you tell me a joke?,7,2026-11-19T06:50:04.807173+00:00
+01b1e5f0-4c3a-4d2b-9f8e-1a2b3c4d5e6f,6332ef6d-4474-490b-9996-57c24e89d5e1,assistant,Why don't scientists trust atoms? Because they make up everything!,15,2026-11-19T06:50:05.807173+00:00

@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Application</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f4f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        #messages {
+            height: 350px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        input {
+            padding: 12px;
+            width: 70%;
+        }
+
+        button {
+            padding: 12px;
+            cursor: pointer;
+        }
+
+        .user {
+            color: blue;
+            margin: 10px 0;
+        }
+
+        .assistant {
+            color: green;
+            margin: 10px 0;
+        }
+
+        #status {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>AI Chat Application</h2>
+
+    <div>
+        <label>API Key:</label>
+        <input type="password" id="apiKey"
+               placeholder="Enter your API key">
+    </div>
+
+    <div id="sessionList">
+        <h3>Sessions</h3>
+        
+        <button onclick="loadSessions()">
+            Load Sessions
+        </button>
+    
+    </div>
+
+    <div id="messages"></div>
+
+    <input
+        type="text"
+        id="messageInput"
+        placeholder="Type your message..."
+    >
+
+    <button onclick="sendMessage()">
+        Send
+    </button>
+
+    <p id="status"></p>
+
+</div>
+
+<script>
+const API_BASE_URL = "http://127.0.0.1:8000";
+// Create a new session
+
+async function createSession() {
+    const apiKey = document.getElementById("apiKey").value;
+    const status = document.getElementById("status");
+
+    try {
+        status.textContent = "Creating session...";
+
+        const response = await fetch(`${API_BASE_URL}/sessions`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-API-Key": apiKey
+            },
+            body: JSON.stringify({})
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        console.log("Session created:", data);
+        status.textContent = "Session created successfully!";
+
+        await loadSessions();
+
+    } catch (error) {
+        status.textContent = "Error: " + error.message;
+        console.error(error);
+    }
+}
+
+// Load all sessions
+async function loadSessions() {
+    const apiKey = document.getElementById("apiKey").value;
+    const sessionList = document.getElementById("sessionList");
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/sessions`, {
+            headers: {
+                "X-API-Key": apiKey
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        console.log("Sessions:", data);
+
+        const sessions = Array.isArray(data)
+            ? data
+            : data.sessions || [];
+
+        sessionList.innerHTML = "<h3>Sessions</h3>";
+
+        sessions.forEach(session => {
+            const sessionId = session.id || session.session_id;
+
+            const button = document.createElement("button");
+
+            button.textContent = sessionId;
+            button.style.display = "block";
+            button.style.margin = "8px";
+
+            button.onclick = () => loadSessionMessages(sessionId);
+
+            sessionList.appendChild(button);
+        });
+
+        document.getElementById("status").textContent =
+            "Sessions loaded successfully!";
+
+    } catch (error) {
+        document.getElementById("status").textContent =
+            "Error loading sessions: " + error.message;
+    }
+}
+
+// Load previous messages
+async function loadSessionMessages(sessionId) {
+    const apiKey = document.getElementById("apiKey").value;
+    const messagesArea = document.getElementById("messages");
+
+    try {
+        document.getElementById("status").textContent =
+            "Loading chat history...";
+
+        messagesArea.innerHTML = "";
+
+        const response = await fetch(
+            `${API_BASE_URL}/sessions/${encodeURIComponent(sessionId)}/messages`,
+            {
+                headers: {
+                    "X-API-Key": apiKey
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const messages = Array.isArray(data)
+            ? data
+            : data.messages || [];
+
+        messages.forEach(message => {
+            const div = document.createElement("div");
+
+            div.className =
+                message.role === "user" ? "user" : "assistant";
+
+            div.textContent =
+                `${message.role}: ${message.content}`;
+
+            messagesArea.appendChild(div);
+        });
+
+        document.getElementById("status").textContent =
+            "Chat history loaded successfully!";
+
+    } catch (error) {
+        document.getElementById("status").textContent =
+            "Error: " + error.message;
+    }
+}
+// Send message to AI
+let currentSessionId = null;
+
+async function sendMessage() {
+    const apiKey = document.getElementById("apiKey").value;
+    const input = document.getElementById("messageInput");
+    const messagesArea = document.getElementById("messages");
+    const message = input.value.trim();
+
+    if (!apiKey || !message) {
+        alert("Enter API key and message");
+        return;
+    }
+
+    try {
+        if (!currentSessionId) {
+            const sessionResponse = await fetch(
+                `${API_BASE_URL}/sessions`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-API-Key": apiKey
+                    }
+                }
+            );
+
+            if (!sessionResponse.ok) {
+                throw new Error("Session creation failed");
+            }
+
+            const sessionData = await sessionResponse.json();
+            currentSessionId = sessionData.session_id;
+        }
+
+        messagesArea.innerHTML +=
+            `<div class="user">You: ${message}</div>`;
+
+        input.value = "";
+
+        const response = await fetch(
+            `${API_BASE_URL}/sessions/${currentSessionId}/chat`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-API-Key": apiKey
+                },
+                body: JSON.stringify({
+                    message: message
+                })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        messagesArea.innerHTML +=
+            `<div class="assistant">AI: ${data.assistant_message}</div>`;
+
+        document.getElementById("status").textContent =
+            "Message sent successfully!";
+
+    } catch (error) {
+        document.getElementById("status").textContent =
+            "Error: " + error.message;
+    }
+}
+</script>
+</body>
+</html>
